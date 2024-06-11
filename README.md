@@ -1,5 +1,5 @@
 # Laboratory work 3 - Experiment
-`asm | acc | harv | hw | instr | struct | trap | mem | pstr | prob2 | cache`
+`asm | acc | harv | hw | instr | struct | stream | mem | pstr | prob2 | cache`
 
 ## Programming language. Syntax
 Extended Backus–Naur form.
