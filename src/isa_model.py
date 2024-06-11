@@ -1,8 +1,9 @@
+import json
 from enum import Enum
-from typing import NamedTuple
+from typing import NamedTuple, List, Dict
 
 
-class OperationCode(str, Enum):
+class Opcode(str, Enum):
     RIGHT = "right"
     LEFT = "left"
     INC = "inc"
@@ -18,14 +19,36 @@ class OperationCode(str, Enum):
         return self.value
 
 
-def get_arg_num(opcode: str) -> int:
-    if opcode in [OperationCode.JZ, OperationCode.JUMP]:
-        return 1
-    else:
-        return 0
-
-
 class Term(NamedTuple):
     line: int
     pos: int
     symbol: str
+
+
+def write_instructions(filename: str,
+                       instructions: List[Dict[str, int | Opcode | Term]]) -> None:
+    """
+    Writes instructions into a file.
+
+    :param filename: path to output JSON file.
+    :param instructions: instructions to write.
+    """
+    with open(filename, "w", encoding="utf-8") as file:
+        buffer: List[str] = []
+        for instructions in instructions:
+            buffer.append(json.dumps(instructions))
+
+        file.write("[" + ",\n ".join(buffer) + "]")
+
+
+def get_arg_num(opcode: str) -> int:
+    """
+    Returns number of args for opcode.
+
+    :param opcode: opcode string.
+    :return: number of args.
+    """
+    if opcode in [Opcode.JZ, Opcode.JUMP]:
+        return 1
+    else:
+        return 0
