@@ -41,6 +41,22 @@ def write_instructions(filename: str,
         file.write("[" + ",\n ".join(buffer) + "]")
 
 
+def read_code(filename: str) -> List[Dict[str, int | Opcode | Term]]:
+    with open(filename, encoding="utf-8") as file:
+        code = json.loads(file.read())
+
+    for instr in code:
+        # String to Opcode
+        instr["opcode"] = Opcode(instr["opcode"])
+
+        # term list to class Term
+        if "term" in instr:
+            assert len(instr["term"]) == 3
+            instr["term"] = Term(instr["term"][0], instr["term"][1], instr["term"][2])
+
+    return code
+
+
 def get_arg_num(opcode: str) -> int:
     """
     Returns number of args for opcode.
