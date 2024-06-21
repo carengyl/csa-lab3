@@ -1,13 +1,10 @@
-# Laboratory work 3 - Experiment
-`asm | acc | harv | hw | instr | struct | stream | mem | pstr | prob2 | cache`
+# Лабораторная работа №3: Эксперимент.
+- Николаев Павел Дмитриевич
+- Вариант: `asm | acc | harv | hw | instr | struct | stream | mem | pstr | prob2 | cache`
+- Упрощенный вариант
 
-## Programming language. Syntax
-Extended Backus–Naur form.
-
-- `[ ... ]` -- 0 or 1 entry
-- `{ ... }` -- repeats 0 or several times
-- `{ ... }-` -- repeats 1 or several times
-
+## Язык программирования. Assembly
+### Расширенная форма Бэкуса-Наура
 ``` ebnf
 program ::= { line }
 
@@ -18,52 +15,102 @@ line ::= label [ comment ] "\n"
 label ::= label_name ":"
 
 instr ::= op0
-        | op1 label_name
+        | op1 integer
+        | op1 char
+        | op1 address
+        | op2 address
+        | op3 label_name
 
-op0 ::= "increment"
-      | "decrement"
-      | "right"
-      | "left"
-      | "print"
+op0 ::= "inc"
+      | "dec"
+      | "halt"
+      | "pop"
+      | "push"
+      | "ret"
+      | "movh"
       | "input"
+      | "print"
 
-op1 ::= "jmp"
-      | "jz"
+op1 ::= "add"
+      | "sub"
+      | "mul"
+      | "div"
+      | "rem"
+      | "cmp"
+      
+op2 ::= "store"
+
+op3 ::= "jmp"
+      | "je"
+      | "jne"
+      | "jge"
+      | "call"
 
 integer ::= [ "-" ] { <any of "0-9"> }-
+
+char ::= '<"a-z A-z">'
+
+address ::= <any of *> { <any of "0-9"> }
 
 label_name ::= <any of "a-z A-Z _"> { <any of "a-z A-Z 0-9 _"> }
 
 comment ::= ";" <any symbols except "\n">
 ```
 
-Supports one-line comments starting with the `;`.
+### Команды:
 
-Operations:
+#### Адресные команды:
+- `add M`: M + acc -> acc
+- `sub M`: acc - M -> acc
+- `mul M`: acc * M -> acc
+- `div M`: acc // M -> acc
+- `rem M`: acc % M -> acc
+- `cmp M`: установить флаги по результату AC - M
+- `store M`: acc -> M (не поддерживает прямую загрузку)
 
-- `increment` -- increase value in current cell by 1
-- `decrement` -- decrease value in current cell by 1
-- `right` -- jump to the next cell
-- `left` -- jump to the previous cell
-- `print` -- print the value from the current cell (symbol)
-- `input` -- enter a value and save it in the current cell (symbol)
-- `jmp addr` -- one-way transfer of control to a given address or label
-- `jz addr` -- branch to a given address or label if the value of the current cell is zero
+#### Безадресные команды:
+- `inc`: acc + 1 -> acc
+- `dec`: acc - 1 -> acc
+- `halt`: остановить процессор
+- `movh`: acc[7:0] -> acc[31:24]
 
-Labels for transitions are defined on separate lines:
+#### Команды ветвления:
+- `jmp D`: ip + D + 1 -> ip
+- `je D`: if Z==1 then ip + D + 1 -> ip
+- `jne`: if Z==0 then ip + D + 1 -> ip
+- `jge`: if N==0 then ip + D + 1 -> ip
 
+#### Команды подпрограмм:
+- `pop`: (sp)+ -> acc
+- `push`: (ac) -> -(sp)
+- `call`: sp - 1 -> sp, IP -> (sp), M -> ip
+- `ret`: (sp)+ -> ip
+
+#### Команды ввода-вывода:
+- `input`: загрузить токен из буфера ввода в аккумулятор
+- `print`: выгрузить токен из аккумулятора в буфер вывода
+
+### Метки
+Метки для переходов определяются на отдельных строчках:
 ``` asm
 label: 
-    increment
+    instruction
 ```
 
-And in another place (does not matter whether before or after the definition) refer to this label:
-
+И в другом месте (неважно, до или после определения) сослаться на эту метку:
 ``` asm
 jmp label   ; --> `jmp 123`, где 123 - номер инструкции после объявления метки
 ```
 
-The translator will put in the address of the instruction before which was label defined.
+Транслятор поставит на место использования метки адрес той инструкции, перед которой она определена. (Аналогично для call)
 
-The program cannot have duplicate labels defined in different places with the same name.
+В программе не может быть дублирующихся меток, определенных в разных местах с одним именем.
+
+## Организация памяти
+Память устроена следующим образом:
+1. Гарвардская архитектура - разделение памяти команд и памяти данных.
+2. Память команд: машинное слово - не определено. Реализовано списком словарей, каждый из которых описывает одну инструкцию.
+3. Память данных: машинное слово - 4 байта, знаковое. Реализовано списком чисел.
+4. Система команд выстроена вокруг аккумулятора (acc) - программисту для взаимодействия доступен только этот регистр. 
+5. Для реализации подпрограмм присутствует указатель стека (SP), который указывает на конец памяти данных.
 
