@@ -4,16 +4,33 @@ from typing import NamedTuple, List, Dict
 
 
 class Opcode(str, Enum):
-    RIGHT = "right"
-    LEFT = "left"
     INC = "inc"
     DEC = "dec"
+    HALT = "halt"
+    POP = "pop"
+    PUSH = "push"
+    RET = "ret"
+    MOVH = "movh"
     INPUT = "input"
     PRINT = "print"
+    LOAD = "load"
+    ADD = "add"
+    SUB = "sub"
+    MUL = "mul"
+    DIV = "div"
+    REM = "rem"
+    CMP = "cmp"
+    STORE = "store"
+    JMP = "jmp"
+    JE = "je"
+    JNE = "jne"
+    JGE = "jge"
+    CALL = "call"
 
-    JUMP = "jmp"
-    JZ = "jz"
-    HALT = "halt"
+    OP_0 = {INC, DEC, HALT, POP, PUSH, RET, INPUT, PRINT, MOVH}  # Безадресные команды
+    OP_1 = {LOAD, ADD, SUB, MUL, DIV, REM, CMP}  # Адресные команды с прямой загрузкой
+    OP_2 = {STORE}  # Адресные команды без прямой загрузки
+    OP_3 = {JMP, JE, JNE, JGE, CALL}  # Команды ветвления
 
     def __str__(self):
         return self.value
@@ -57,14 +74,14 @@ def read_code(filename: str) -> List[Dict[str, int | Opcode | Term]]:
     return code
 
 
-def get_arg_num(opcode: str) -> int:
+def get_arg_num(opcode: Opcode) -> int:
     """
-    Returns number of args for opcode.
+    Returns number of args for Opcode.
 
     :param opcode: opcode string.
     :return: number of args.
     """
-    if opcode in [Opcode.JZ, Opcode.JUMP]:
+    if opcode.value in Opcode.OP_1 or opcode.value in Opcode.OP_2 or opcode.value in Opcode.OP_3:
         return 1
     else:
         return 0

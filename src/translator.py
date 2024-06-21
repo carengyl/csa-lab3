@@ -1,19 +1,23 @@
 import pathlib
+import re
 import sys
-from typing import List, Dict, Tuple, Union
+from typing import Tuple, Union
 
-from isa_model import Opcode, Term, get_arg_num, write_instructions
+from isa_model import *
+
+type LABELS_DICT = Dict[str, int]  # Internal type for dictionary with labels and instruction index
+type INSTRUCTIONS_LIST = List[Dict[str, Union[int, Opcode, str]]]  # Internal type for list of instructions
 
 
-def preprocess_text(text: str) -> Tuple[Dict[str, int], List[Dict[str, Union[int, Opcode, Term]]]]:
+def preprocess_text(text: str) -> Tuple[LABELS_DICT, INSTRUCTIONS_LIST]:
     """
     Preprocesses the assembly text to extract labels and instructions.
 
     :param text: Assembly code as a string.
     :return: Labels as dictionary and instructions as a list of dictionaries.
     """
-    instructions: List[Dict[str, Union[int, Opcode, Term]]] = []
-    labels: Dict[str, int] = {}
+    instructions: INSTRUCTIONS_LIST = []
+    labels: LABELS_DICT = {}
 
     for line_number, line in enumerate(text.splitlines(), start=1):
         token: str = line.split(";", 1)[0].strip()
@@ -30,35 +34,58 @@ def preprocess_text(text: str) -> Tuple[Dict[str, int], List[Dict[str, Union[int
             labels[label] = opcode_pointer
 
         elif " " in token:
-            sub_tokens: List[str] = token.split(" ")
+            sub_tokens: List[str] = token.split(" ", 1)
+
             if len(sub_tokens) != 2:
                 raise ValueError(f"Invalid instruction: {token}")
 
-            mnemonic: str
-            arg: str
             mnemonic, arg = sub_tokens
-
             opcode = Opcode(mnemonic)
 
             if get_arg_num(opcode) != 1:
                 raise ValueError(f"Invalid argument: {arg}")
 
+            # Прямая загрузка числа
+            if ((arg.isdigit() or (arg.startswith('-') and arg[1:].isdigit()))
+                    and opcode in Opcode.OP_1):
+                arg = int(arg)
+
+            # Прямая загрузка символа
+            elif (len(arg) == 3 and arg.startswith("'") and arg.endswith("'")
+                  and opcode in Opcode.OP_1):
+                arg = ord(arg[1:-1])
+
+            # Абсолютная, косвенная или косвенная автоинкрементная адресация
+            elif (re.match(r"\*{1,2}\d+\+?", arg)
+                  and (opcode in Opcode.OP_1 or opcode in Opcode.OP_2)):
+                arg = arg
+
+            # Переход по метке
+            elif (re.match(r"[a-zA-z0-9_]+", arg)
+                  and (opcode in Opcode.OP_3)):
+                arg = arg
+
+            # Default case
+            else:
+                raise ValueError(f"Invalid argument: {arg} for instruction: {opcode}")
+
             instructions.append({"index": opcode_pointer,
                                  "opcode": opcode,
-                                 "arg": arg,
-                                 "term": Term(line_number, 0, token)})
+                                 "arg": arg})
 
         else:
             opcode = Opcode(token)
+            if opcode not in Opcode.OP_0:
+                raise ValueError(f"Invalid usage: {token}")
+
             instructions.append({"index": opcode_pointer,
-                                 "opcode": opcode,
-                                 "term": Term(line_number, 0, token)})
+                                 "opcode": opcode})
 
     return labels, instructions
 
 
-def assign_labels(labels: Dict[str, int],
-                  instructions: List[Dict[str, Union[int, Opcode, Term]]]) -> List[Dict[str, Union[int, Opcode, Term]]]:
+def assign_labels(labels: LABELS_DICT,
+                  instructions: INSTRUCTIONS_LIST) -> INSTRUCTIONS_LIST:
     """
     Assigns labels to the instructions.
 
@@ -68,15 +95,23 @@ def assign_labels(labels: Dict[str, int],
     """
     for instruction in instructions:
         if "arg" in instruction.keys():
-            label = instruction["arg"]
-            if label not in labels:
-                raise ValueError(f"Label not defined: {label}")
-            instruction["arg"] = labels[label]
+            argument = instruction["arg"]
+
+            if type(argument) is int:  # Прямая загрузка
+                continue
+
+            if argument.startswith("*"):  # Абсолютная, косвенная или косвенная автоинкрементная адресация
+                continue
+
+            if argument not in labels:
+                raise ValueError(f"Label not defined: {argument}")
+
+            instruction["arg"] = labels[argument]
 
     return instructions
 
 
-def translate_file(source: str) -> List[Dict[str, Union[int, Opcode, Term]]]:
+def translate_file(source: str) -> INSTRUCTIONS_LIST:
     """
     Translates the assembly code into a list of instructions.
 
