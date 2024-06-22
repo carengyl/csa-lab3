@@ -3,7 +3,7 @@ import re
 import sys
 from typing import Tuple, Union
 
-from isa_model import *
+from machine.isa_model import *
 
 type LABELS_DICT = Dict[str, int]  # Internal type for dictionary with labels and instruction index
 type INSTRUCTIONS_LIST = List[Dict[str, Union[int, Opcode, str]]]  # Internal type for list of instructions
