@@ -46,6 +46,7 @@ op3 ::= "jmp"
       | "jne"
       | "jge"
       | "call"
+      | "func"
 
 integer ::= [ "-" ] { <any of "0-9"> }-
 
@@ -76,16 +77,17 @@ comment ::= ";" <any symbols except "\n">
 - `movh`: acc[7:0] -> acc[31:24]
 
 #### Команды ветвления:
-- `jmp D`: ip + D + 1 -> ip
-- `je D`: if Z==1 then ip + D + 1 -> ip
-- `jne`: if Z==0 then ip + D + 1 -> ip
-- `jge`: if N==0 then ip + D + 1 -> ip
+- `jmp D`: L -> ip
+- `je D`: if Z==1: L -> ip
+- `jne`: if Z==0: L -> ip
+- `jge`: if N==0: L -> ip
 
 #### Команды подпрограмм:
-- `pop`: (sp)+ -> acc
-- `push`: (ac) -> -(sp)
-- `call`: sp - 1 -> sp, IP -> (sp), M -> ip
-- `ret`: (sp)+ -> ip
+- `pop`: (sp) -> acc, sp + 1 -> sp
+- `push`: sp - 1 -> sp, acc -> (sp) 
+- `func`: L -> acc
+- `call`: sp - 1 -> sp, IP -> (sp), L -> ip
+- `ret`: (sp) -> ip, sp + 1 -> sp
 
 #### Команды ввода-вывода:
 - `input`: загрузить токен из буфера ввода в аккумулятор
